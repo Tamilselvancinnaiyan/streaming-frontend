@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Users, Clock, Play } from "lucide-react";
 import { motion } from "framer-motion";
+import { log } from "console";
 
 interface StreamCardProps {
   id: string;
@@ -20,12 +21,12 @@ export default function StreamCard({
   hostName,
   hostAvatar,
   viewerCount,
-  duration = "LIVE",
+  duration,
   category,
 }: StreamCardProps) {
   return (
     <motion.div
-      className="stream-card"
+      className={`stream-card ${duration === "LIVE" ? "is-live" : ""}`}
       whileHover={{ y: -5 }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -33,18 +34,20 @@ export default function StreamCard({
     >
       <div className="thumbnail-container">
         <img src={thumbnail} alt={title} className="thumbnail" />
-        <div className="live-badge animate-pulse-live">
-          <span className="dot"></span>
-          LIVE
+        <div className={`status-badge ${duration === "LIVE" ? "live animate-pulse-live" : "ended"}`}>
+          {duration === "LIVE" && <span className="dot"></span>}
+          {duration}
         </div>
         <div className="category-badge">{category}</div>
         <div className="hover-overlay">
-          <Link href={`/watch/${id}`} className="join-link">
-            <button className="join-btn">
-              <Play size={20} fill="currentColor" />
-              Join Stream
-            </button>
-          </Link>
+          {duration === "LIVE" && (
+            <Link href={`/watch/${id}`} className="join-link">
+              <button className="join-btn">
+                <Play size={20} fill="currentColor" />
+                Join Stream
+              </button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -86,8 +89,18 @@ export default function StreamCard({
           transition: border-color 0.2s;
         }
 
+        .stream-card.is-live {
+          border-color: rgba(239, 68, 68, 0.4);
+          box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+        }
+
         .stream-card:hover {
           border-color: var(--primary);
+        }
+
+        .stream-card.is-live:hover {
+          border-color: var(--live);
+          box-shadow: 0 0 25px rgba(239, 68, 68, 0.15);
         }
 
         .thumbnail-container {
@@ -102,12 +115,10 @@ export default function StreamCard({
           object-fit: cover;
         }
 
-        .live-badge {
+        .status-badge {
           position: absolute;
           top: 0.75rem;
           left: 0.75rem;
-          background: var(--live);
-          color: white;
           padding: 0.25rem 0.5rem;
           border-radius: 0.25rem;
           font-size: 0.75rem;
@@ -115,6 +126,18 @@ export default function StreamCard({
           display: flex;
           align-items: center;
           gap: 0.375rem;
+          z-index: 5;
+        }
+
+        .status-badge.live {
+          background: var(--live);
+          color: white;
+        }
+
+        .status-badge.ended {
+          background: rgba(0, 0, 0, 0.6);
+          color: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(4px);
         }
 
         .dot {

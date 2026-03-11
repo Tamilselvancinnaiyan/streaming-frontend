@@ -25,6 +25,7 @@ export interface StreamRecord {
   roomId?: string;
   hostUserId?: string;
   title?: string;
+  status?: string;
   category?: string;
   endedAt?: string | null;
   startedAt?: string;

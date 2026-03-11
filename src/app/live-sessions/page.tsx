@@ -17,6 +17,7 @@ type DashboardStream = {
 };
 
 function mapToDashboardStream(record: StreamRecord): DashboardStream {
+  console.log(record);
   const roomId = record.room_name || record.roomId || record.id;
   return {
     id: roomId,
@@ -25,7 +26,7 @@ function mapToDashboardStream(record: StreamRecord): DashboardStream {
     title: record.title || "Untitled Session",
     hostName: record.hostUserId || "Host",
     viewerCount: String(record.participantCount ?? 0),
-    duration: "LIVE",
+    duration: record.status === "live" ? "LIVE" : "Ended",
     category: record.category || "general",
   };
 }
@@ -60,9 +61,7 @@ export default function LiveSessionsPage() {
     <div className="dashboard-container">
       <header className="page-header">
         <h1 className="page-title">Live Sessions</h1>
-        <p className="page-subtitle">
-          Active streams from <code>GET /streams/reconcile</code>.
-        </p>
+        <p className="page-subtitle"></p>
       </header>
 
       {isLoading && <p className="status">Loading streams...</p>}
