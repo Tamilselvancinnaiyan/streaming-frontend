@@ -1,12 +1,21 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
+import { useParams } from "next/navigation";
 import VideoPlayer from "@/components/VideoPlayer";
 import LiveChat from "@/components/LiveChat";
 import { useLiveKit } from "@/hooks/useLiveKit";
-import { Share2, Heart, Plus, Loader2 } from "lucide-react";
+import { getAuthSession, getOrCreateViewerIdentity } from "@/lib/auth";
+import { Share2, Heart, Loader2 } from "lucide-react";
 
 export default function WatchPage() {
+  const params = useParams<{ id: string }>();
+  const roomId = params?.id ? decodeURIComponent(params.id) : "";
+  const viewerIdentity = useMemo(
+    () => getOrCreateViewerIdentity(getAuthSession()?.user, roomId),
+    [roomId]
+  );
+
   const {
     remoteTracks,
     messages,
@@ -16,12 +25,13 @@ export default function WatchPage() {
     connect,
     error,
   } = useLiveKit({
-    roomName: "test-room",
+    roomId,
   });
 
   useEffect(() => {
-    connect("viewer");
-  }, []);
+    if (!roomId) return;
+    connect("viewer", viewerIdentity);
+  }, [connect, roomId, viewerIdentity]);
 
   const videoTrack = remoteTracks.find((t) => t.kind === "video");
 
@@ -42,7 +52,10 @@ export default function WatchPage() {
           {error && (
             <div className="error-overlay">
               <span>Failed to connect: {error.message}</span>
-              <button onClick={() => connect("viewer")} className="retry-btn">
+              <button
+                onClick={() => connect("viewer", viewerIdentity)}
+                className="retry-btn"
+              >
                 Retry
               </button>
             </div>
@@ -79,7 +92,7 @@ export default function WatchPage() {
           <div className="description">
             <p>
               Join me as we build a full-stack SaaS application using Next.js,
-              LiveKit, and Framer Motion. We'll cover everything from real-time
+              LiveKit, and Framer Motion. We&apos;ll cover everything from real-time
               streaming to complex dashboard layouts.
             </p>
             <div className="tags">

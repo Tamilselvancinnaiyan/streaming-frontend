@@ -7,9 +7,9 @@ interface StreamCardProps {
   thumbnail: string;
   title: string;
   hostName: string;
-  hostAvatar: string;
+  hostAvatar?: string;
   viewerCount: string;
-  duration: string;
+  duration?: string;
   category: string;
 }
 
@@ -20,7 +20,7 @@ export default function StreamCard({
   hostName,
   hostAvatar,
   viewerCount,
-  duration,
+  duration = "LIVE",
   category,
 }: StreamCardProps) {
   return (
@@ -51,7 +51,11 @@ export default function StreamCard({
       <div className="card-info">
         <div className="host-info">
           <div className="host-avatar-container">
-            <img src={hostAvatar} alt={hostName} className="host-avatar" />
+            <img
+              src={hostAvatar || "https://i.pravatar.cc/150?u=host-default"}
+              alt={hostName}
+              className="host-avatar"
+            />
           </div>
           <div className="text-info">
             <h3 className="stream-title">{title}</h3>

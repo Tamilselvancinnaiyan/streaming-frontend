@@ -19,7 +19,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const navItems = [
-  { name: "Live Sessions", href: "/", icon: Tv2 },
+  { name: "Live Sessions", href: "/live-sessions", icon: Tv2 },
   { name: "Create Stream", href: "/create", icon: PlusSquare },
 ];
 

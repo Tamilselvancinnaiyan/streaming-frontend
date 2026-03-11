@@ -5,12 +5,10 @@ import {
     Room,
     RoomEvent,
     RemoteTrack,
-    RemoteTrackPublication,
-    RemoteParticipant,
     LocalTrack,
-    Track,
-    DataPacket_Kind
 } from 'livekit-client';
+import { API_BASE } from '@/lib/api';
+import { getAuthSession } from '@/lib/auth';
 
 export interface ChatMessage {
     id: string;
@@ -23,11 +21,11 @@ export interface ChatMessage {
 }
 
 export interface UseLiveKitOptions {
-    roomName: string;
+    roomId: string;
     tokenEndpoint?: string;
 }
 
-export function useLiveKit({ roomName, tokenEndpoint = 'http://localhost:3000/token' }: UseLiveKitOptions) {
+export function useLiveKit({ roomId, tokenEndpoint = `${API_BASE}/token` }: UseLiveKitOptions) {
     const [room, setRoom] = useState<Room | null>(null);
     const [remoteTracks, setRemoteTracks] = useState<RemoteTrack[]>([]);
     const [localTracks, setLocalTracks] = useState<LocalTrack[]>([]);
@@ -42,13 +40,17 @@ export function useLiveKit({ roomName, tokenEndpoint = 'http://localhost:3000/to
         setParticipantCount(room.numParticipants + 1); // +1 for local participant
     }, []);
 
-    const connect = useCallback(async (role: 'host' | 'viewer') => {
+    const connect = useCallback(async (role: 'host' | 'viewer', identity: string) => {
         setIsConnecting(true);
         setError(null);
 
         try {
-            console.log(`Connecting to ${roomName} as ${role}...`);
-            const res = await fetch(`${tokenEndpoint}?room=${roomName}&role=${role}`);
+            console.log(`Connecting to ${roomId} as ${role}...`);
+            const auth = getAuthSession();
+            const tokenQuery = `${tokenEndpoint}?room=${encodeURIComponent(roomId)}&role=${encodeURIComponent(role)}&identity=${encodeURIComponent(identity)}`;
+            const res = await fetch(tokenQuery, {
+                headers: auth?.token ? { Authorization: `Bearer ${auth.token}` } : undefined,
+            });
             if (!res.ok) throw new Error('Failed to fetch token');
             const data = await res.json();
             console.log('Token received:', data);
@@ -130,13 +132,13 @@ export function useLiveKit({ roomName, tokenEndpoint = 'http://localhost:3000/to
                 console.log("👀 Watching stream as viewer");
             }
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('LiveKit connection error:', err);
-            setError(err);
+            setError(err instanceof Error ? err : new Error('LiveKit connection failed'));
         } finally {
             setIsConnecting(false);
         }
-    }, [roomName, tokenEndpoint, updateParticipantCount]);
+    }, [roomId, tokenEndpoint, updateParticipantCount]);
 
     const toggleAudio = useCallback(async () => {
         if (!room) return;

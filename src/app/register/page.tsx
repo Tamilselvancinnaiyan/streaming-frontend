@@ -3,28 +3,28 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, LogIn } from "lucide-react";
-import { loginUser } from "@/lib/api";
-import { saveAuthSession } from "@/lib/auth";
+import { Loader2, UserPlus } from "lucide-react";
+import { registerUser } from "@/lib/api";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"viewer" | "host" | "admin">("viewer");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const auth = await loginUser({ email, password });
-      saveAuthSession(auth);
-      router.push("/create");
+      await registerUser({ name, email, password, role });
+      router.push("/");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Login failed";
+      const message = err instanceof Error ? err.message : "Registration failed";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -34,10 +34,21 @@ export default function LoginPage() {
   return (
     <div className="auth-shell">
       <div className="auth-card card-shadow">
-        <h1 className="title">Login</h1>
-        <p className="subtitle">Sign in with your email and password.</p>
+        <h1 className="title">Register</h1>
+        <p className="subtitle">Create your account.</p>
 
-        <form onSubmit={handleLogin} className="form">
+        <form onSubmit={handleRegister} className="form">
+          <div className="form-group">
+            <label>Name</label>
+            <input
+              type="text"
+              className="form-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+
           <div className="form-group">
             <label>Email</label>
             <input
@@ -60,16 +71,29 @@ export default function LoginPage() {
             />
           </div>
 
+          <div className="form-group">
+            <label>Role</label>
+            <select
+              className="form-input"
+              value={role}
+              onChange={(e) => setRole(e.target.value as "viewer" | "host" | "admin")}
+            >
+              <option value="viewer">viewer</option>
+              <option value="host">host</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+
           {error && <p className="error">{error}</p>}
 
           <button className="submit" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={18} />}
-            {isSubmitting ? "Logging in..." : "Login"}
+            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
+            {isSubmitting ? "Registering..." : "Register"}
           </button>
         </form>
 
-        <Link href="/register" className="register-link">
-          Register
+        <Link href="/" className="register-link">
+          Back to Login
         </Link>
       </div>
 

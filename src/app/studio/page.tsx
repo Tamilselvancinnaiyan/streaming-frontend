@@ -1,9 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import VideoPlayer from "@/components/VideoPlayer";
 import LiveChat from "@/components/LiveChat";
 import { useLiveKit } from "@/hooks/useLiveKit";
+import {
+  clearActiveStreamSession,
+  getActiveStreamSession,
+  getAuthSession,
+  resolveHostIdentity,
+} from "@/lib/auth";
+import { stopStream } from "@/lib/api";
 import {
   Play,
   Square,
@@ -13,13 +20,23 @@ import {
   VideoOff,
   Monitor,
   UserPlus,
-  Circle,
   Activity,
   Loader2,
   Users,
 } from "lucide-react";
 
 export default function StudioPage() {
+  const [streamIdFromQuery, setStreamIdFromQuery] = useState("");
+  const [roomIdFromQuery, setRoomIdFromQuery] = useState("");
+  const auth = getAuthSession();
+  const savedStream = getActiveStreamSession();
+  const streamId = streamIdFromQuery || savedStream?.id || "";
+  const roomId = roomIdFromQuery || savedStream?.roomId || "";
+  const hostIdentity = useMemo(
+    () => resolveHostIdentity(auth?.user, roomId),
+    [auth?.user, roomId]
+  );
+
   const {
     room,
     localTracks,
@@ -35,11 +52,39 @@ export default function StudioPage() {
     toggleVideo,
     error,
   } = useLiveKit({
-    roomName: "test-room",
+    roomId,
   });
 
   const isLive = !!room;
   const localVideoTrack = localTracks.find((t) => t.kind === "video");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setStreamIdFromQuery(params.get("streamId") || "");
+    setRoomIdFromQuery(params.get("roomId") || "");
+  }, []);
+
+  useEffect(() => {
+    if (streamId && roomId) {
+      clearActiveStreamSession();
+    }
+  }, [streamId, roomId]);
+
+  const handleGoLive = async () => {
+    if (!roomId) return;
+    await connect("host", hostIdentity);
+  };
+
+  const handleStop = async () => {
+    try {
+      const token = auth?.token;
+      if (streamId && token) {
+        await stopStream(streamId, token);
+      }
+    } finally {
+      await disconnect();
+    }
+  };
 
   return (
     <div className="studio-container">
@@ -56,8 +101,8 @@ export default function StudioPage() {
               {!isLive ? (
                 <button
                   className="btn-primary flex gap-2"
-                  onClick={() => connect("host")}
-                  disabled={isConnecting}
+                  onClick={handleGoLive}
+                  disabled={isConnecting || !roomId}
                 >
                   {isConnecting ? (
                     <Loader2 className="animate-spin" size={20} />
@@ -67,7 +112,7 @@ export default function StudioPage() {
                   {isConnecting ? "Starting..." : "Go Live"}
                 </button>
               ) : (
-                <button className="btn-danger flex gap-2" onClick={disconnect}>
+                <button className="btn-danger flex gap-2" onClick={handleStop}>
                   <Square size={20} fill="currentColor" /> Stop
                 </button>
               )}

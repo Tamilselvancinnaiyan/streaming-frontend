@@ -35,7 +35,7 @@ export default function VideoPlayer({
   useEffect(() => {
     if (track && videoRef.current) {
       if (track instanceof RemoteTrack || typeof track.attach === "function") {
-        const element = track.attach();
+        const element = track.attach() as HTMLMediaElement;
         videoRef.current.appendChild(element);
         return () => {
           track.detach(element);
