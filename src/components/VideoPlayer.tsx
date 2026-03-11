@@ -28,6 +28,8 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const playerWrapperRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,8 +45,86 @@ export default function VideoPlayer({
     }
   }, [track]);
 
+  useEffect(() => {
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      msFullscreenElement?: Element | null;
+    };
+
+    const handleFullscreenChange = () => {
+      const fullscreenElement =
+        document.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.msFullscreenElement;
+      setIsFullscreen(fullscreenElement === playerWrapperRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange
+      );
+      document.removeEventListener(
+        "MSFullscreenChange",
+        handleFullscreenChange
+      );
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void> | void;
+      msExitFullscreen?: () => Promise<void> | void;
+      webkitFullscreenElement?: Element | null;
+      msFullscreenElement?: Element | null;
+    };
+    const player = playerWrapperRef.current as (HTMLDivElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+      msRequestFullscreen?: () => Promise<void> | void;
+    }) | null;
+
+    if (!player) return;
+
+    const fullscreenElement =
+      document.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.msFullscreenElement;
+
+    if (fullscreenElement) {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
+        return;
+      }
+      if (doc.msExitFullscreen) {
+        await doc.msExitFullscreen();
+      }
+      return;
+    }
+
+    if (player.requestFullscreen) {
+      await player.requestFullscreen();
+      return;
+    }
+    if (player.webkitRequestFullscreen) {
+      await player.webkitRequestFullscreen();
+      return;
+    }
+    if (player.msRequestFullscreen) {
+      await player.msRequestFullscreen();
+    }
+  };
+
   return (
-    <div className="player-wrapper">
+    <div ref={playerWrapperRef} className="player-wrapper">
       <div className="player-container">
         {/* Actual Video Track Container */}
         <div ref={videoRef} className="video-track-container" />
@@ -134,7 +214,12 @@ export default function VideoPlayer({
             <button className="ctrl-btn">
               <Settings size={20} />
             </button>
-            <button className="ctrl-btn">
+            <button
+              className="ctrl-btn"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Exit full screen" : "Enter full screen"}
+              aria-label={isFullscreen ? "Exit full screen" : "Enter full screen"}
+            >
               <Maximize size={20} />
             </button>
           </div>
@@ -149,6 +234,15 @@ export default function VideoPlayer({
           overflow: hidden;
           position: relative;
           aspect-ratio: 16 / 9;
+        }
+
+        .player-wrapper:fullscreen,
+        .player-wrapper:-webkit-full-screen {
+          width: 100vw;
+          height: 100vh;
+          max-width: none;
+          aspect-ratio: auto;
+          border-radius: 0;
         }
 
         .player-container {
